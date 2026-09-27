@@ -1,3 +1,5 @@
 | Date/commit | Tool | Prompt | Disposition | What changed & why | In my own words, how this works |
 |---|---|---|---|---|---|
 | 2026-09-25 | ChatGPT | Asked for help creating the initial Flask project structure and deployment-ready setup | Modified | I adjusted the folder structure and environment setup to match the assignment requirements | The application starts from run.py, which creates the Flask app using create_app() from app/__init__.py. The routes are registered using a Blueprint in main_routes.py, and the app runs on a configurable port using environment variables. |
+|---|---|---|---|---|---|
+| 2026-09-27 | ChatGPT | Asked for help configuring SQLite and creating SQLAlchemy models for TripSplit | Modified | I simplified some of the suggested schema structure to keep the project aligned with the assignment scope and easier to explain later | The app creates the SQLite database automatically when Flask starts. SQLAlchemy models define the Group, Participant, and Expense tables, and relationships connect participants and expenses to specific groups using foreign keys. |
