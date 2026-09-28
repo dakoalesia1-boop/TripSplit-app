@@ -1,6 +1,27 @@
 {% extends "base.html" %}
-
 {% block content %}
-<h1>TripSplit is running</h1>
-<p>Expense sharing made simple.</p>
+<h1 class="mb-4">TripSplit Groups</h1>
+<form method="POST" action="/create-group" class="mb-4">
+    <div class="input-group">
+        <input
+            type="text"
+            name="group_name"
+            class="form-control"
+            placeholder="Enter group name"
+            required
+        >
+        <button class="btn btn-primary" type="submit">
+            Create Group
+        </button>
+    </div>
+</form>
+<div class="list-group">
+    {% for group in groups %}
+        <div class="list-group-item">
+            <a href="{{ url_for('main.group_detail', group_id=group.id) }}">
+    {{ group.name }}
+</a>
+        </div>
+    {% endfor %}
+</div>
 {% endblock %}

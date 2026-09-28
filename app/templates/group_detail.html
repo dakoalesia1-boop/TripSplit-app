@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>{{ group.name }}</h1>
+
+<hr>
+
+<h3>Participants</h3>
+
+<ul class="list-group mb-4">
+    {% for participant in participants %}
+        <li class="list-group-item">
+            {{ participant.name }}
+        </li>
+    {% endfor %}
+</ul>
+
+<h3>Expenses</h3>
+
+<ul class="list-group">
+    {% for expense in expenses %}
+        <li class="list-group-item">
+            {{ expense.description }} - €{{ expense.amount }}
+        </li>
+    {% endfor %}
+</ul>
+
+{% endblock %}
