@@ -29,3 +29,31 @@ def group_detail(group_id):
         participants=participants,
         expenses=expenses
     )
+
+@main.route("/group/<int:group_id>/add-participant", methods=["POST"])
+def add_participant(group_id):
+    participant_name = request.form.get("participant_name")
+    if participant_name:
+        participant = Participant(
+            name=participant_name,
+            group_id=group_id
+        )
+        db.session.add(participant)
+        db.session.commit()
+    return redirect(url_for("main.group_detail", group_id=group_id))
+
+@main.route("/group/<int:group_id>/add-expense", methods=["POST"])
+def add_expense(group_id):
+    description = request.form.get("description")
+    amount = request.form.get("amount")
+    paid_by_id = request.form.get("paid_by_id")
+    if description and amount and paid_by_id:
+        expense = Expense(
+            description=description,
+            amount=float(amount),
+            paid_by_id=int(paid_by_id),
+            group_id=group_id
+        )
+        db.session.add(expense)
+        db.session.commit()
+    return redirect(url_for("main.group_detail", group_id=group_id))
