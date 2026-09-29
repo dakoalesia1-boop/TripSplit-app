@@ -24,11 +24,13 @@ def group_detail(group_id):
     group = Group.query.get_or_404(group_id)
     participants = Participant.query.filter_by(group_id=group.id).all()
     expenses = Expense.query.filter_by(group_id=group.id).all()
+    participant_lookup = {participant.id: participant.name for participant in participants}
     return render_template(
         "group_detail.html",
         group=group,
         participants=participants,
-        expenses=expenses
+        expenses=expenses,
+        participant_lookup=participant_lookup
     )
 
 @main.route("/group/<int:group_id>/add-participant", methods=["POST"])
@@ -64,7 +66,6 @@ def settlements(group_id):
     group = Group.query.get_or_404(group_id)
 
     participants = Participant.query.filter_by(group_id=group.id).all()
-
     expenses = Expense.query.filter_by(group_id=group.id).all()
 
     balances = calculate_balances(expenses, participants)

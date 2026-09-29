@@ -31,3 +31,20 @@ Another option was to use a imple single-table structure, but this would duplica
 
 Concequences: 
 The schema is easier to extend later for features such as settlement tracking and analytics. But the schema also requires additional joins and relationship handling in the application logic. 
+
+## 2. Modular Separation of Feature Domains
+Date: 2026-09-29
+
+Status: Decided
+
+Context:
+The application requires at least two backend feature domains that could later be separated into independent services. The project also needs business logic that remains maintainable and testable as functionality grows.
+
+Decision:
+The application was divided into an Expense Management domain and a Settlement Calculation domain. Expense management handles creating groups, participants, and expenses through Flask routes and database models, while settlement calculations were moved into a dedicated service module responsible for balance computation.
+
+Alternatives considered:
+I considered keeping all calculation logic directly inside Flask route handlers but this would tightly couple business logic with HTTP request handling and make testing more difficult.
+
+Consequences:
+The service layer approach improves modularity and makes settlement calculations easier to test independently from the web framework. However, it introduces additional project structure and abstraction compared to a smaller single file Flask application.

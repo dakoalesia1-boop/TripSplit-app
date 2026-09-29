@@ -89,7 +89,7 @@
     {% for expense in expenses %}
         <li class="list-group-item">
             {{ expense.description }} - €{{ expense.amount }}
-            (Paid by participant ID: {{ expense.paid_by_id }})
+            (Paid by {{ participant_lookup[expense.paid_by_id] }})
         </li>
     {% endfor %}
 </ul>
