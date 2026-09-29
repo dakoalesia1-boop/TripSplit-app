@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for
 from app import db
 from app.models.models import Group, Participant, Expense
+from app.services.settlement_service import calculate_balances
 
 main = Blueprint("main", __name__)
 @main.route("/")
@@ -57,3 +58,25 @@ def add_expense(group_id):
         db.session.add(expense)
         db.session.commit()
     return redirect(url_for("main.group_detail", group_id=group_id))
+
+@main.route("/group/<int:group_id>/settlements")
+def settlements(group_id):
+    group = Group.query.get_or_404(group_id)
+
+    participants = Participant.query.filter_by(group_id=group.id).all()
+
+    expenses = Expense.query.filter_by(group_id=group.id).all()
+
+    balances = calculate_balances(expenses, participants)
+
+    participant_lookup = {
+        participant.id: participant.name
+        for participant in participants
+    }
+
+    return render_template(
+        "settlements.html",
+        group=group,
+        balances=balances,
+        participant_lookup=participant_lookup
+    )

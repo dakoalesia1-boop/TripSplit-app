@@ -39,6 +39,12 @@
 <hr>
 
 <h3>Expenses</h3>
+<a
+    href="{{ url_for('main.settlements', group_id=group.id) }}"
+    class="btn btn-dark mt-4"
+>
+    View Settlements
+</a>
 
 <form
     method="POST"

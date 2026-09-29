@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>{{ group.name }} Settlements</h1>
+
+<hr>
+
+<ul class="list-group">
+
+    {% for participant_id, balance in balances.items() %}
+
+        <li class="list-group-item">
+
+            {{ participant_lookup[participant_id] }}
+
+            {% if balance > 0 %}
+                is owed €{{ "%.2f"|format(balance) }}
+            {% elif balance < 0 %}
+                owes €{{ "%.2f"|format(balance * -1) }}
+            {% else %}
+                is settled up
+            {% endif %}
+
+        </li>
+
+    {% endfor %}
+
+</ul>
+
+{% endblock %}
