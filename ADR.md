@@ -48,3 +48,20 @@ I considered keeping all calculation logic directly inside Flask route handlers 
 
 Consequences:
 The service layer approach improves modularity and makes settlement calculations easier to test independently from the web framework. However, it introduces additional project structure and abstraction compared to a smaller single file Flask application.
+
+## 4. Testing Strategy and Coverage Priorities
+Date: 2026-09-30
+
+Status: Decided
+
+Context:
+The project requires automated tests with at least 70% coverage focused on core business logic. The application contains both Flask routing code and financial settlement calculations.
+
+Decision:
+Testing efforts were focused primarily on the settlement calculation service because it contains the application's most important business logic. Unit tests were written to validate balance calculations, participant inclusion rules, and expense sharing behavior independently from Flask routes and templates. Both pytest and pytest --cov=app passed with 100%.
+
+Alternatives considered:
+I considered testing full Flask routes and HTML rendering more extensively, but since the assignment emphasizes core logic rather than framework behavior, this option was not seen as important. 
+
+Consequences:
+The testing strategy provides strong confidence in the financial calculation logic and supports easier debugging of settlement behavior. However, some UI and route integration behavior receives lighter automated coverage.
