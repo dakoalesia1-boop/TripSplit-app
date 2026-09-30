@@ -2,7 +2,57 @@
 
 {% block content %}
 
-<h1>{{ group.name }}</h1>
+<div class="row mb-4">
+
+    <div class="col-md-4">
+        <div class="card p-3">
+            <h5>Total Spending</h5>
+            <p>€{{ "%.2f"|format(total_spent) }}</p>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card p-3">
+            <h5>Participants</h5>
+            <p>{{ participant_count }}</p>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card p-3">
+            <h5>Expenses</h5>
+            <p>{{ expense_count }}</p>
+        </div>
+    </div>
+
+</div>
+
+<h1 class="mb-4">{{ group.name }}</h1>
+
+<div class="row mb-4">
+
+    <div class="col-md-4">
+        <div class="card p-3">
+            <h5>Total Spending</h5>
+            <p>€{{ "%.2f"|format(total_spent) }}</p>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card p-3">
+            <h5>Participants</h5>
+            <p>{{ participant_count }}</p>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card p-3">
+            <h5>Expenses</h5>
+            <p>{{ expense_count }}</p>
+        </div>
+    </div>
+
+</div>
 
 <hr>
 
@@ -14,6 +64,7 @@
     class="mb-3"
 >
     <div class="input-group">
+
         <input
             type="text"
             name="participant_name"
@@ -25,32 +76,30 @@
         <button class="btn btn-success" type="submit">
             Add Participant
         </button>
+
     </div>
 </form>
 
 <ul class="list-group mb-4">
+
     {% for participant in participants %}
         <li class="list-group-item">
             {{ participant.name }}
         </li>
     {% endfor %}
+
 </ul>
 
 <hr>
 
 <h3>Expenses</h3>
-<a
-    href="{{ url_for('main.settlements', group_id=group.id) }}"
-    class="btn btn-dark mt-4"
->
-    View Settlements
-</a>
 
 <form
     method="POST"
     action="{{ url_for('main.add_expense', group_id=group.id) }}"
     class="mb-4"
 >
+
     <input
         type="text"
         name="description"
@@ -70,28 +119,79 @@
 
     <select
         name="paid_by_id"
-        class="form-select mb-2"
+        class="form-select mb-3"
         required
     >
+
         {% for participant in participants %}
             <option value="{{ participant.id }}">
                 {{ participant.name }}
             </option>
         {% endfor %}
+
     </select>
+
+    <label class="form-label">Shared By</label>
+
+    <div class="mb-3">
+
+        {% for participant in participants %}
+
+            <div class="form-check">
+
+                <input
+                    class="form-check-input"
+                    type="checkbox"
+                    name="shared_participants"
+                    value="{{ participant.id }}"
+                    id="participant{{ participant.id }}"
+                >
+
+                <label
+                    class="form-check-label"
+                    for="participant{{ participant.id }}"
+                >
+                    {{ participant.name }}
+                </label>
+
+            </div>
+
+        {% endfor %}
+
+    </div>
 
     <button class="btn btn-primary" type="submit">
         Add Expense
     </button>
+
 </form>
 
-<ul class="list-group">
+<ul class="list-group mb-4">
+
     {% for expense in expenses %}
+
         <li class="list-group-item">
-            {{ expense.description }} - €{{ expense.amount }}
-            (Paid by {{ participant_lookup[expense.paid_by_id] }})
+
+            <strong>{{ expense.description }}</strong>
+            - €{{ "%.2f"|format(expense.amount) }}
+
+            <br>
+
+            <small>
+                Paid by {{ participant_lookup[expense.paid_by_id] }}
+            </small>
+
         </li>
+
     {% endfor %}
+
 </ul>
+
+<a
+    href="{{ url_for('main.settlements', group_id=group.id) }}"
+    class="btn btn-dark"
+>
+    View Settlements
+</a>
 
 {% endblock %}

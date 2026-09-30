@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for
 from app import db
-from app.models.models import Group, Participant, Expense
+from app.models.models import Group, Participant, Expense, ExpenseShare
 from app.services.settlement_service import calculate_balances
 
 main = Blueprint("main", __name__)
@@ -25,11 +25,18 @@ def group_detail(group_id):
     participants = Participant.query.filter_by(group_id=group.id).all()
     expenses = Expense.query.filter_by(group_id=group.id).all()
     participant_lookup = {participant.id: participant.name for participant in participants}
+    total_spent = sum(expense.amount for expense in expenses)   
+    participant_count = len(participants)
+    expense_count = len(expenses)
+    
     return render_template(
         "group_detail.html",
         group=group,
         participants=participants,
         expenses=expenses,
+        total_spent=total_spent,
+        participant_count=participant_count,
+        expense_count=expense_count,
         participant_lookup=participant_lookup
     )
 
@@ -50,6 +57,7 @@ def add_expense(group_id):
     description = request.form.get("description")
     amount = request.form.get("amount")
     paid_by_id = request.form.get("paid_by_id")
+    shared_participants = request.form.getlist("shared_participants")
     if description and amount and paid_by_id:
         expense = Expense(
             description=description,
@@ -59,21 +67,23 @@ def add_expense(group_id):
         )
         db.session.add(expense)
         db.session.commit()
+        for participant_id in shared_participants:
+            share = ExpenseShare(
+                expense_id=expense.id,
+                participant_id=int(participant_id)
+            )
+            db.session.add(share)
+        db.session.commit()
     return redirect(url_for("main.group_detail", group_id=group_id))
 
 @main.route("/group/<int:group_id>/settlements")
 def settlements(group_id):
     group = Group.query.get_or_404(group_id)
-
     participants = Participant.query.filter_by(group_id=group.id).all()
     expenses = Expense.query.filter_by(group_id=group.id).all()
+    balances = calculate_balances(expenses)
+    participant_lookup = {participant.id: participant.name for participant in participants}
 
-    balances = calculate_balances(expenses, participants)
-
-    participant_lookup = {
-        participant.id: participant.name
-        for participant in participants
-    }
 
     return render_template(
         "settlements.html",

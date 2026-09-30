@@ -1,15 +1,20 @@
 from collections import defaultdict
 
-
-def calculate_balances(expenses, participants):
+def calculate_balances(expenses):
     balances = defaultdict(float)
-    participant_count = len(participants)
 
-    if participant_count == 0:
-        return balances
     for expense in expenses:
-        split_amount = expense.amount / participant_count
+        shared_participants = [
+            share.participant_id
+            for share in expense.shares
+        ]
+
+        if not shared_participants:
+            continue
+
+        split_amount = expense.amount / len(shared_participants)
         balances[expense.paid_by_id] += expense.amount
-        for participant in participants:
-            balances[participant.id] -= split_amount
+
+        for participant_id in shared_participants:
+            balances[participant_id] -= split_amount
     return balances

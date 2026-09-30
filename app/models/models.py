@@ -17,3 +17,19 @@ class Expense(db.Model):
     amount = db.Column(db.Float, nullable=False)
     paid_by_id = db.Column(db.Integer, db.ForeignKey("participant.id"), nullable=False)
     group_id = db.Column(db.Integer, db.ForeignKey("group.id"), nullable=False)
+    shares = db.relationship("ExpenseShare", backref="expense", lazy=True)
+
+class ExpenseShare(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    expense_id = db.Column(
+        db.Integer,
+        db.ForeignKey("expense.id"),
+        nullable=False
+    )
+
+    participant_id = db.Column(
+        db.Integer,
+        db.ForeignKey("participant.id"),
+        nullable=False
+    )
