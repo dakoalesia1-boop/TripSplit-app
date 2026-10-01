@@ -62,22 +62,31 @@ TripSplit-app/
 ├── requirements.txt
 ├── run.py
 └── README.md
+```
+---
 
 ## Setup Instructions
 1. Clone the repository
-git clone <repository-url>
-cd TripSplit-app
+   
+`git clone <repository-url>`
+
+`cd TripSplit-app`
 
 2. Create virtual environment
-python3 -m venv .venv
-source .venv/bin/activate
+
+`python3 -m venv .venv`
+
+`source .venv/bin/activate`
 
 3. Install dependencies 
-pip install -r requirements.txt
+
+`pip install -r requirements.txt`
 
 ## Running the Application
-python run.py
-http://localhost:5000
+
+`python run.py`
+
+`http://localhost:5000`
 
 ## Environment Variables
 
@@ -93,15 +102,15 @@ The application automatically creates the SQLite database on startup with a defa
 ## Running Tests
 
 ### Run unit tests
-pytest
+`pytest`
 
 ### Run coverage report
-pytest --cov=app
+`pytest --cov=app`
 
 Testing primarly targets the settlement calculations, shared expense logic, participant balance calculations and expense sharing rules.
 
 ## Deployment Requirements
-The application runs as a single Flask process. It uses SQLite persistance and binds to 0.0.0.0. It reads the port from environment variables, requires no external database and starts with a single command. 
+The application runs as a single Flask process. It uses SQLite persistance and binds to `0.0.0.0`. It reads the port from environment variables, requires no external database and starts with a single command. 
 
 ## AI Disclosure Statement
 I acknowledge the use of ChatGPT to assist with project planning, architecture guidance, debugging, testing suggestions, and documentation support. The prompts used included requests for Flask project structure guidance, SQLAlchemy schema design, settlement calculation logic, and testing strategies. The generated output was reviewed, modified, and integrated into the final implementation. A full documentation is found under AI_USAGE.md.
