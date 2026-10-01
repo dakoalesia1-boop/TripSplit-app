@@ -65,3 +65,20 @@ I considered testing full Flask routes and HTML rendering more extensively, but 
 
 Consequences:
 The testing strategy provides strong confidence in the financial calculation logic and supports easier debugging of settlement behavior. However, some UI and route integration behavior receives lighter automated coverage.
+
+## 5. Features Deliberately Excluded
+Date: 2026-10-01
+
+Status: Decided
+
+Context:
+The project scope needed to remain manageable within the assignment timeline while maintaining focus on modular backend logic and testing quality.
+
+Decision:
+User authentication, external payment APIs, and real-time synchronization were intentionally excluded from the application.
+
+Alternatives considered:
+Authentication and payment integration were considered to improve realism but rejected because they would add significant complexity without contributing meaningfully to the core financial logic or assignment requirements.
+
+Consequences:
+The project remains focused on expense sharing functionality, modularity, and testability. However, the application would require additional security and user management features before being production ready.
