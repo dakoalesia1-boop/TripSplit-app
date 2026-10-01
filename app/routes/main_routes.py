@@ -1,6 +1,7 @@
+from click import group
 from flask import Blueprint, render_template, request, redirect, url_for
 from app import db
-from app.models.models import Group, Participant, Expense, ExpenseShare
+from app.models.models import Group, Participant, Expense, ExpenseShare, Settlement
 from app.services.settlement_service import calculate_balances
 
 main = Blueprint("main", __name__)
@@ -83,11 +84,31 @@ def settlements(group_id):
     expenses = Expense.query.filter_by(group_id=group.id).all()
     balances = calculate_balances(expenses)
     participant_lookup = {participant.id: participant.name for participant in participants}
-
+    settlement_history = Settlement.query.filter_by(
+        group_id=group.id
+    ).all()
 
     return render_template(
         "settlements.html",
         group=group,
         balances=balances,
-        participant_lookup=participant_lookup
+        participant_lookup=participant_lookup,
+        settlement_history=settlement_history
     )
+
+@main.route("/group/<int:group_id>/settle-payment", methods=["POST"])
+def settle_payment(group_id):
+    payer_id = request.form.get("payer_id")
+    receiver_id = request.form.get("receiver_id")
+    amount = request.form.get("amount")
+
+    if payer_id and receiver_id and amount:
+        settlement = Settlement(
+            payer_id=int(payer_id),
+            receiver_id=int(receiver_id),
+            amount=float(amount),
+            group_id=group_id
+        )
+        db.session.add(settlement)
+        db.session.commit()
+    return redirect(url_for("main.settlements", group_id=group_id))

@@ -33,3 +33,26 @@ class ExpenseShare(db.Model):
         db.ForeignKey("participant.id"),
         nullable=False
     )
+
+class Settlement(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    payer_id = db.Column(
+        db.Integer,
+        db.ForeignKey("participant.id"),
+        nullable=False
+    )
+
+    receiver_id = db.Column(
+        db.Integer,
+        db.ForeignKey("participant.id"),
+        nullable=False
+    )
+
+    amount = db.Column(db.Float, nullable=False)
+
+    group_id = db.Column(
+        db.Integer,
+        db.ForeignKey("group.id"),
+        nullable=False
+    )

@@ -2,30 +2,132 @@
 
 {% block content %}
 
-<h1>{{ group.name }} Settlements</h1>
+<a href="/" class="btn btn-secondary mb-4">
+    Back to Groups
+</a>
 
-<hr>
+<h1 class="mb-4 fw-bold">
+    {{ group.name }} Settlements
+</h1>
 
-<ul class="list-group">
+<div class="card p-4 mb-4">
 
-    {% for participant_id, balance in balances.items() %}
+    <ul class="list-group">
 
-        <li class="list-group-item">
+        {% for participant_id, balance in balances.items() %}
 
-            {{ participant_lookup[participant_id] }}
+            <li class="list-group-item">
 
-            {% if balance > 0 %}
-                is owed €{{ "%.2f"|format(balance) }}
-            {% elif balance < 0 %}
-                owes €{{ "%.2f"|format(balance * -1) }}
-            {% else %}
-                is settled up
-            {% endif %}
+                <strong>
+                    {{ participant_lookup[participant_id] }}
+                </strong>
 
-        </li>
+                {% if balance > 0 %}
+                    is owed €{{ "%.2f"|format(balance) }}
+                {% elif balance < 0 %}
+                    owes €{{ "%.2f"|format(balance * -1) }}
+                {% else %}
+                    is settled up
+                {% endif %}
 
-    {% endfor %}
+            </li>
 
-</ul>
+        {% endfor %}
+
+    </ul>
+
+</div>
+
+<div class="card p-4 mb-4">
+
+    <h3 class="mb-3">Record Settlement</h3>
+
+    <form
+        method="POST"
+        action="{{ url_for('main.settle_payment', group_id=group.id) }}"
+    >
+
+        <select
+            name="payer_id"
+            class="form-select mb-2"
+            required
+        >
+
+            <option value="">Who Paid?</option>
+
+            {% for participant_id, balance in balances.items() %}
+
+                <option value="{{ participant_id }}">
+                    {{ participant_lookup[participant_id] }}
+                </option>
+
+            {% endfor %}
+
+        </select>
+
+        <select
+            name="receiver_id"
+            class="form-select mb-2"
+            required
+        >
+
+            <option value="">Who Received?</option>
+
+            {% for participant_id, balance in balances.items() %}
+
+                <option value="{{ participant_id }}">
+                    {{ participant_lookup[participant_id] }}
+                </option>
+
+            {% endfor %}
+
+        </select>
+
+        <input
+            type="number"
+            step="0.01"
+            name="amount"
+            class="form-control mb-3"
+            placeholder="Settlement Amount"
+            required
+        >
+
+        <button class="btn btn-success">
+            Record Settlement
+        </button>
+
+    </form>
+
+</div>
+
+<div class="card p-4">
+
+    <h3 class="mb-3">Settlement History</h3>
+
+    <ul class="list-group">
+
+        {% for settlement in settlement_history %}
+
+            <li class="list-group-item">
+
+                <strong>
+                    {{ participant_lookup[settlement.payer_id] }}
+                </strong>
+
+                paid
+
+                <strong>
+                    {{ participant_lookup[settlement.receiver_id] }}
+                </strong>
+
+                €{{ "%.2f"|format(settlement.amount) }}
+
+            </li>
+
+        {% endfor %}
+
+    </ul>
+
+</div>
 
 {% endblock %}

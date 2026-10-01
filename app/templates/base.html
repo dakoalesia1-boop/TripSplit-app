@@ -10,13 +10,20 @@
         rel="stylesheet"
     >
 </head>
-<body>
+
+<body class="bg-light">
+
 <nav class="navbar navbar-dark bg-dark mb-4">
     <div class="container">
+
         <a class="navbar-brand" href="/">TripSplit</a>
+    
+        <span class="navbar-text text-light">
+            Shared expense tracking made simple
+        </span>
     </div>
 </nav>
-<div class="container">
+<div class="container mb-5">
     {% block content %}{% endblock %}
 </div>
 </body>
