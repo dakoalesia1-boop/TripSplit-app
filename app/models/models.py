@@ -18,6 +18,7 @@ class Expense(db.Model):
     paid_by_id = db.Column(db.Integer, db.ForeignKey("participant.id"), nullable=False)
     group_id = db.Column(db.Integer, db.ForeignKey("group.id"), nullable=False)
     shares = db.relationship("ExpenseShare", backref="expense", lazy=True)
+    category = db.Column(db.String(50), nullable=False, default="General")
 
 class ExpenseShare(db.Model):
     id = db.Column(db.Integer, primary_key=True)

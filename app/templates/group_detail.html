@@ -6,9 +6,7 @@
     Back to Groups
 </a>
 
-<h1 class="mb-4 fw-bold">
-    {{ group.name }}
-</h1>
+<h1 class="mb-4 fw-bold"> {{ group.name }}</h1>
 
 <div class="row mb-4">
 
@@ -120,9 +118,7 @@
 
         </select>
 
-        <label class="form-label fw-bold">
-            Shared By
-        </label>
+        <label class="form-label fw-bold">Shared By</label>
 
         <div class="mb-3">
 
@@ -151,6 +147,17 @@
 
         </div>
 
+        <select
+            name="category"
+            class="form-select mb-3"
+        >
+            <option value="General" selected>General</option>
+            <option value="Food">Food</option>
+            <option value="Transport">Transport</option>
+            <option value="Accommodation">Accommodation</option>
+            <option value="Entertainment">Entertainment</option>
+        </select>
+
         <button class="btn btn-primary" type="submit">
             Add Expense
         </button>
@@ -163,8 +170,8 @@
 
             <li class="list-group-item">
 
-                <strong>{{ expense.description }}</strong>
-                — €{{ expense.amount }}
+                <strong>{{ expense.category}}</strong> -
+                {{ expense.description }} - €{{ expense.amount }}
 
                 <br>
 

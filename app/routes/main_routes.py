@@ -58,13 +58,15 @@ def add_expense(group_id):
     description = request.form.get("description")
     amount = request.form.get("amount")
     paid_by_id = request.form.get("paid_by_id")
+    category = request.form.get("category")
     shared_participants = request.form.getlist("shared_participants")
     if description and amount and paid_by_id:
         expense = Expense(
             description=description,
             amount=float(amount),
             paid_by_id=int(paid_by_id),
-            group_id=group_id
+            group_id=group_id,
+            category=category
         )
         db.session.add(expense)
         db.session.commit()
@@ -82,11 +84,9 @@ def settlements(group_id):
     group = Group.query.get_or_404(group_id)
     participants = Participant.query.filter_by(group_id=group.id).all()
     expenses = Expense.query.filter_by(group_id=group.id).all()
-    balances = calculate_balances(expenses)
     participant_lookup = {participant.id: participant.name for participant in participants}
-    settlement_history = Settlement.query.filter_by(
-        group_id=group.id
-    ).all()
+    settlement_history = Settlement.query.filter_by(group_id=group.id).all()
+    balances = calculate_balances(expenses, settlement_history)
 
     return render_template(
         "settlements.html",

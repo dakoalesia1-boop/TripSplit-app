@@ -1,6 +1,6 @@
 from collections import defaultdict
 
-def calculate_balances(expenses):
+def calculate_balances(expenses, settlements):
     balances = defaultdict(float)
 
     for expense in expenses:
@@ -17,4 +17,8 @@ def calculate_balances(expenses):
 
         for participant_id in shared_participants:
             balances[participant_id] -= split_amount
+    
+    for settlement in settlements:
+        balances[settlement.payer_id] -= settlement.amount
+        balances[settlement.receiver_id] += settlement.amount
     return balances
