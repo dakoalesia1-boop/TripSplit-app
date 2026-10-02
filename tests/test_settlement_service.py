@@ -20,7 +20,7 @@ def test_equal_split_between_two_people():
         ]
     )
 
-    balances = calculate_balances([expense])
+    balances = calculate_balances([expense], [])
     assert balances[1] == 30
     assert balances[2] == -30
 
@@ -33,7 +33,7 @@ def test_single_participant_pays_only_for_self():
         ]
     )
 
-    balances = calculate_balances([expense])
+    balances = calculate_balances([expense], [])
     assert balances[1] == 0
 
 def test_excluded_participant_not_charged():
@@ -46,5 +46,5 @@ def test_excluded_participant_not_charged():
         ]
     )
 
-    balances = calculate_balances([expense])
+    balances = calculate_balances([expense], [])
     assert 3 not in balances
