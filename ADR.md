@@ -82,3 +82,20 @@ Authentication and payment integration were considered to improve realism but re
 
 Consequences:
 The project remains focused on expense sharing functionality, modularity, and testability. However, the application would require additional security and user management features before being production ready.
+
+## 6. Service Split and Cross-Service Boundary
+Date: 2026-11-11
+
+Status: Decided
+
+Context:
+Assignment 2 requires splitting the TripSplit monolith into separate services along the seam defined in Assignment 1. The project needs a clear division of responsibility between the two feature domains while keeping the system containerized and manageable.
+
+Decision:
+The application was split into two services: an Expense Service and a Settlement Service. The Expense Service owns groups, participants, expenses, expense shares, and categories. The Settlement Service owns settlement records and balance calculations, and it reads expense data from the Expense Service over HTTP when it needs to compute balances. The UI is kept static and calls both services from the browser.
+
+Alternatives considered:
+Keeping the application as one backend with a shared database was considered, but rejected because it would not satisfy the assignment requirement to split the seam into separate services. Splitting the UI into a third backend service was also considered unnecessary because the assignment specifically requires two services, not three.
+
+Consequences:
+The domains are now independently deployable and easier to reason about, but the Settlement Service depends on the Expense Service being available for cross-service data access. This adds HTTP communication, failure handling, and more deployment complexity compared to the original monolith.
