@@ -1,0 +1,16 @@
+services:
+  expense-service:
+    build: ./services/expense-service
+    container_name: tripsplit-expense-service
+    environment:
+      - PORT=8000
+    ports:
+      - "8000:8000"
+
+  settlement-service:
+    build: ./services/settlement-service
+    container_name: tripsplit-settlement-service
+    environment:
+      - PORT=8001
+    ports:
+      - "8001:8001"
