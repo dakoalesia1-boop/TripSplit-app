@@ -1,9 +1,24 @@
 services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: tripsplit-sqlserver
+    environment:
+      - ACCEPT_EULA="Y"
+      - MSSQL_SA_PASSWORD=${SQLSERVER_SA_PASSWORD}
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+
   expense-service:
     build: ./services/expense-service
     container_name: tripsplit-expense-service
     environment:
       - PORT=8000
+      - DATABASE_URL=Server${EXPENSE_DATABASE_URL}
+      - EXPENSE_SERVICE_URL=http://expense-service:8000
+    depends on:
+      - sqlserver
     ports:
       - "8000:8000"
 
@@ -12,5 +27,12 @@ services:
     container_name: tripsplit-settlement-service
     environment:
       - PORT=8001
+      - DATABASE_URL=Server${SETTLEMENT_DATABASE_URL}
+      - EXPENSE_SERVICE_URL=http://expense-service:8000
+    depends on:
+      - sqlserver
+      - expense-service
     ports:
       - "8001:8001"
+volumes:
+    sqlserver-data:
