@@ -1,5 +1,6 @@
 services:
   sqlserver:
+    platform: linux/amd64
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: tripsplit-sqlserver
     environment:
@@ -17,7 +18,7 @@ services:
       - PORT=8000
       - DATABASE_URL=Server${EXPENSE_DATABASE_URL}
       - EXPENSE_SERVICE_URL=http://expense-service:8000
-    depends on:
+    depends_on:
       - sqlserver
     ports:
       - "8000:8000"
@@ -29,7 +30,7 @@ services:
       - PORT=8001
       - DATABASE_URL=Server${SETTLEMENT_DATABASE_URL}
       - EXPENSE_SERVICE_URL=http://expense-service:8000
-    depends on:
+    depends_on:
       - sqlserver
       - expense-service
     ports:
