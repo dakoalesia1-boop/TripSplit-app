@@ -1,11 +1,10 @@
 services:
   sqlserver:
-    platform: linux/amd64
-    image: mcr.microsoft.com/mssql/server:2022-latest
+    image: mcr.microsoft.com/azure-sql-edge:latest
     container_name: tripsplit-sqlserver
     environment:
-      - ACCEPT_EULA="Y"
-      - MSSQL_SA_PASSWORD=${SQLSERVER_SA_PASSWORD}
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${SQLSERVER_SA_PASSWORD}
     ports:
       - "1433:1433"
     volumes:
@@ -15,9 +14,9 @@ services:
     build: ./services/expense-service
     container_name: tripsplit-expense-service
     environment:
-      - PORT=8000
-      - DATABASE_URL=Server${EXPENSE_DATABASE_URL}
-      - EXPENSE_SERVICE_URL=http://expense-service:8000
+      PORT: 8000
+      DATABASE_URL: ${EXPENSE_DATABASE_URL}
+      EXPENSE_SERVICE_URL: http://expense-service:8000
     depends_on:
       - sqlserver
     ports:
@@ -27,13 +26,14 @@ services:
     build: ./services/settlement-service
     container_name: tripsplit-settlement-service
     environment:
-      - PORT=8001
-      - DATABASE_URL=Server${SETTLEMENT_DATABASE_URL}
-      - EXPENSE_SERVICE_URL=http://expense-service:8000
+      PORT: 8001
+      DATABASE_URL: ${SETTLEMENT_DATABASE_URL}
+      EXPENSE_SERVICE_URL: http://expense-service:8000
     depends_on:
       - sqlserver
       - expense-service
     ports:
       - "8001:8001"
+
 volumes:
-    sqlserver-data:
+  sqlserver-data:
