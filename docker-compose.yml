@@ -9,6 +9,14 @@ services:
       - "1433:1433"
     volumes:
       - sqlserver-data:/var/opt/mssql
+  
+  db-init:
+    build: ./db/init
+    container_name: tripsplit-db-init
+    environment:
+      MSSQL_SA_PASSWORD: ${SQLSERVER_SA_PASSWORD}
+    depends_on:
+      - sqlserver
 
   expense-service:
     build: ./services/expense-service
@@ -18,7 +26,8 @@ services:
       DATABASE_URL: ${EXPENSE_DATABASE_URL}
       EXPENSE_SERVICE_URL: http://expense-service:8000
     depends_on:
-      - sqlserver
+      db-init:
+        condition: service_completed_successfully
     ports:
       - "8000:8000"
 
@@ -30,8 +39,10 @@ services:
       DATABASE_URL: ${SETTLEMENT_DATABASE_URL}
       EXPENSE_SERVICE_URL: http://expense-service:8000
     depends_on:
-      - sqlserver
-      - expense-service
+      db-init:
+        condition: service_completed_successfully
+      expense-service:
+        condition: service_started
     ports:
       - "8001:8001"
 
