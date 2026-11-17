@@ -1,0 +1,173 @@
+
+:root {
+    --primary: #5367d9;
+    --primary-dark: #4053bd;
+    --background: #f5f6fb;
+    --surface: #ffffff;
+    --text: #20243a;
+    --muted: #777d91;
+    --border: #e7e9f1;
+    --success: #25865b;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: var(--background);
+    color: var(--text);
+}
+
+.topbar {
+    background: var(--surface);
+    padding: 22px 8%;
+    border-bottom: 1px solid var(--border);
+}
+
+.topbar h1 {
+    margin: 0;
+    font-size: 28px;
+}
+
+.topbar h1 span {
+    color: var(--primary);
+}
+
+.topbar p {
+    margin: 6px 0 0;
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.container {
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+
+.welcome {
+    margin-bottom: 28px;
+}
+
+.welcome h2 {
+    font-size: 27px;
+    margin-bottom: 8px;
+}
+
+.welcome p {
+    color: var(--muted);
+}
+
+.panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 22px;
+    box-shadow: 0 3px 12px rgba(30, 40, 80, 0.04);
+}
+
+.panel h2 {
+    margin-top: 0;
+    font-size: 20px;
+}
+
+.panel h3 {
+    margin-top: 24px;
+}
+
+form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+input, select {
+    flex: 1;
+    min-width: 160px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    font-size: 14px;
+    background: white;
+}
+
+button {
+    padding: 12px 18px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 7px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+button:hover {
+    background: var(--primary-dark);
+}
+
+fieldset {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 14px;
+}
+
+fieldset label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 8px 14px 8px 0;
+}
+
+fieldset input {
+    min-width: auto;
+    flex: none;
+}
+
+ul {
+    padding-left: 20px;
+}
+
+li {
+    margin: 9px 0;
+}
+
+#message {
+    margin: 18px 0;
+    font-weight: bold;
+}
+
+#message.error {
+    color: #c0392b;
+}
+
+#message.success {
+    color: var(--success);
+}
+
+[hidden] {
+    display: none !important;
+}
+
+@media (max-width: 600px) {
+    .container {
+        margin-top: 24px;
+    }
+
+    .panel {
+        padding: 18px;
+    }
+
+    form {
+        flex-direction: column;
+    }
+
+    input, select, button {
+        width: 100%;
+    }
+}
