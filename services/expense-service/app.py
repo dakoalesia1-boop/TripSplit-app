@@ -2,10 +2,33 @@
 import os
 import math
 import pyodbc
-from flask import Flask, jsonify, request
+import logging
+import time
+
+from flask import Flask, jsonify, request, g
 from migration_runner import apply_migrations, get_connection
 
+
 app = Flask(__name__)
+
+@app.before_request
+def start_request_timer():
+    g.request_started_at = time.perf_counter()
+
+
+@app.after_request
+def log_request(response):
+    duration = time.perf_counter() - g.request_started_at
+
+    app.logger.info(
+        "%s %s - %s - %.4f seconds",
+        request.method,
+        request.path,
+        response.status_code,
+        duration
+    )
+
+    return response
 
 
 @app.route("/health")

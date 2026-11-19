@@ -1,19 +1,40 @@
 import os
 import pyodbc
 import requests
-from flask import Flask, jsonify, request
+import logging
+import time
+
+from flask import Flask, jsonify, request, g
 from migration_runner import apply_migrations, get_connection
 
+
 app = Flask(__name__)
+
+@app.before_request
+def start_request_timer():
+    g.request_started_at = time.perf_counter()
+
+
+@app.after_request
+def log_request(response):
+    duration = time.perf_counter() - g.request_started_at
+
+    app.logger.info(
+        "%s %s - %s - %.4f seconds",
+        request.method,
+        request.path,
+        response.status_code,
+        duration
+    )
+
+    return response
+
 
 EXPENSE_SERVICE_URL = os.getenv(
     "EXPENSE_SERVICE_URL",
     "http://expense-service:8000"
 )
 
-@app.route("/health")
-def health():
-    return jsonify(status="ok", service="settlement-service")
 
 @app.route("/api/groups/<int:group_id>/balances", methods=["GET"])
 def get_balances(group_id):
@@ -88,6 +109,37 @@ def get_balances(group_id):
     ]
 
     return jsonify(group_id=group_id, balances=result)
+
+@app.route("/health")
+def health():
+    conn = None
+    cursor = None
+
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT 1")
+
+        return jsonify(
+            status="ok",
+            service="settlement-service",
+            db="ok"
+        ), 200
+
+    except Exception:
+        app.logger.exception("Settlement Service database health check failed")
+
+        return jsonify(
+            status="error",
+            service="settlement-service",
+            db="unavailable"
+        ), 503
+
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 
 @app.route("/api/groups/<int:group_id>/settlements", methods=["POST"])
