@@ -194,3 +194,98 @@ def test_create_settlement_success(client, monkeypatch):
     assert response.json["group_id"] == 1
     assert response.json["amount"] == 20
     conn.commit.assert_called_once()
+
+def test_expense_and_settlement_services_integrate(
+    client, monkeypatch
+):
+    # Import the Expense Service test app
+    expense_test_dir = (
+        Path(__file__).resolve().parents[2]
+        / "expense-service"
+        / "tests"
+    )
+
+    import importlib.util
+
+    expense_test_file = expense_test_dir / "test_app.py"
+
+    spec = importlib.util.spec_from_file_location(
+        "expense_integration_test_app",
+        expense_test_file
+    )
+    expense_test_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(expense_test_module)
+
+    expense_app = expense_test_module.expense_app
+
+    # Mock Expense Service database
+    expense_conn = MagicMock()
+    expense_cursor = MagicMock()
+    expense_conn.cursor.return_value = expense_cursor
+
+    group = (1, "Integration Test Trip")
+    expense = (1, "Dinner", 60, "Food", 10, "Alex")
+
+    expense_cursor.fetchone.side_effect = [
+        group,
+        None
+    ]
+
+    expense_cursor.fetchall.side_effect = [
+        [expense],
+        [(10,), (11,)]
+    ]
+
+    monkeypatch.setattr(
+        expense_app,
+        "get_connection",
+        lambda: expense_conn
+    )
+
+    mock_settlement_database(monkeypatch)
+
+    expense_client = expense_app.app.test_client()
+
+    class FlaskResponseAdapter:
+        def __init__(self, response):
+            self.response = response
+
+        def raise_for_status(self):
+            if self.response.status_code >= 400:
+                error = requests.HTTPError()
+                error.response = type(
+                    "Response",
+                    (),
+                    {"status_code": self.response.status_code}
+                )()
+                raise error
+
+        def json(self):
+            return self.response.get_json()
+
+    def call_expense_service(url, **kwargs):
+        response = expense_client.get(
+            "/api/groups/1/snapshot"
+        )
+        return FlaskResponseAdapter(response)
+
+    monkeypatch.setattr(
+        settlement_app.requests,
+        "get",
+        call_expense_service
+    )
+
+    response = client.get("/api/groups/1/balances")
+
+    assert response.status_code == 200
+    assert response.json["group_id"] == 1
+
+    balances = {
+        item["participant_id"]: item["balance"]
+        for item in response.json["balances"]
+    }
+
+    assert balances == {
+        10: 30.0,
+        11: -30.0
+    }

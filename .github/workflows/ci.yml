@@ -1,0 +1,54 @@
+
+name: TripSplit CI
+
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+    branches:
+      - "**"
+
+jobs:
+  test:
+    name: Run backend tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ODBC dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y unixodbc-dev g++
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r services/expense-service/requirements.txt
+          pip install -r services/settlement-service/requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Run Expense Service tests
+        run: |
+          python -m pytest \
+            --cov=expense_service_app \
+            --cov-report=term-missing \
+            --cov-fail-under=70 \
+            services/expense-service/tests \
+            services/settlement-service/tests
+
+      - name: Run Settlement Service tests
+        run: |
+          python -m pytest \
+            --cov=settlement_service_app \
+            --cov-report=term-missing \
+            --cov-fail-under=70 \
+            services/expense-service/tests \
+            services/settlement-service/tests

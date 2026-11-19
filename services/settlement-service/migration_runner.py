@@ -9,12 +9,21 @@ def get_connection():
     conn_str = os.getenv("DATABASE_URL")
     if not conn_str:
         raise RuntimeError("DATABASE_URL is not set")
+
     for attempt in range(10):
         try:
             return pyodbc.connect(conn_str, timeout=5)
         except pyodbc.Error as e:
-            print(f"Connection attempt {attempt + 1}: Could not connect to the database after 10 attempts")
-            time.sleep(3)
+            print(
+                f"Connection attempt {attempt + 1}/10 failed: {e}"
+            )
+
+            if attempt < 9:
+                time.sleep(3)
+
+    raise RuntimeError(
+        "Could not connect to the database after 10 attempts"
+    )
 
 def ensure_migrations_table(cursor):
     cursor.execute("""
