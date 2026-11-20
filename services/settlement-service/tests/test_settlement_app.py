@@ -16,6 +16,7 @@ spec = importlib.util.spec_from_file_location(
 )
 settlement_app = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(settlement_app)
+sys.path.remove(str(SERVICE_DIR))
 
 
 @pytest.fixture
@@ -289,3 +290,20 @@ def test_expense_and_settlement_services_integrate(
         10: 30.0,
         11: -30.0
     }
+
+def test_cors_allows_configured_origin(client, monkeypatch):
+    monkeypatch.setattr(
+        settlement_app,
+        "CORS_ORIGINS",
+        {"https://example.com"},
+    )
+
+    mock_settlement_database(monkeypatch)
+    response = client.get(
+        "/health",
+        headers={"Origin": "https://example.com"},
+    )
+
+    assert response.status_code == 200
+    assert response.headers["Access-Control-Allow-Origin"] == "https://example.com"
+    assert response.headers["Access-Control-Allow-Methods"] == "GET, POST, OPTIONS"

@@ -8,46 +8,63 @@ function showMessage(message, type = "success") {
     messageElement.className = type;
 }
 
-async function expenseRequest(path, options = {}) {
-    const response = await fetch(
-        `${API_CONFIG.expenseService}${path}`,
-        {
+async function apiRequest(baseUrl, path, options, serviceName) {
+    let response;
+
+    try {
+        response = await fetch(`${baseUrl}${path}`, {
             ...options,
             headers: {
                 "Content-Type": "application/json",
                 ...options.headers
             }
-        }
-    );
+        });
+    } catch (error) {
+        throw new Error(
+            `${serviceName} is starting up or temporarily unavailable. Please try again in a moment.`
+        );
+    }
 
-    const data = await response.json();
+    let data = {};
+
+    try {
+        const responseText = await response.text();
+        data = responseText ? JSON.parse(responseText) : {};
+    } catch (error) {
+        data = {};
+    }
 
     if (!response.ok) {
-        throw new Error(data.error || "Expense Service request failed");
+        if ([502, 503, 504].includes(response.status)) {
+            throw new Error(
+                `${serviceName} is starting up or temporarily unavailable. Please try again in a moment.`
+            );
+        }
+
+        throw new Error(
+            data.error || `${serviceName} request failed (HTTP ${response.status})`
+        );
     }
 
     return data;
 }
 
-async function settlementRequest(path, options = {}) {
-    const response = await fetch(
-        `${API_CONFIG.settlementService}${path}`,
-        {
-            ...options,
-            headers: {
-                "Content-Type": "application/json",
-                ...options.headers
-            }
-        }
+async function expenseRequest(path, options = {}) {
+    return apiRequest(
+        API_CONFIG.expenseService,
+        path,
+        options,
+        "Expense Service"
     );
+}
 
-    const data = await response.json();
-
-    if (!response.ok) {
-        throw new Error(data.error || "Settlement Service request failed");
-    }
-
-    return data;
+async function settlementRequest(path, options = {}) {
+    return apiRequest(
+        API_CONFIG.settlementService,
+        path,
+        options,
+        "Settlement Service"
+    );
 }
 
 async function loadGroups() {

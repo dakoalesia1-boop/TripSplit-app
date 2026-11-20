@@ -14,6 +14,7 @@ spec = importlib.util.spec_from_file_location(
 )
 expense_app = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(expense_app)
+sys.path.remove(str(SERVICE_DIR))
 
 
 @pytest.fixture
@@ -230,3 +231,19 @@ def test_get_group_snapshot_success(client, monkeypatch):
     assert response.json["group_name"] == "Barcelona Trip"
     assert response.json["expenses"][0]["description"] == "Dinner"
     assert response.json["expenses"][0]["shared_participants"] == [10, 11]
+
+def test_cors_allows_configured_origin(client, monkeypatch):
+    monkeypatch.setattr(
+        expense_app,
+        "CORS_ORIGINS",
+        {"https://example.com"},
+    )
+
+    response = client.get(
+        "/health",
+        headers={"Origin": "https://example.com"},
+    )
+
+    assert response.status_code == 200
+    assert response.headers["Access-Control-Allow-Origin"] == "https://example.com"
+    assert response.headers["Access-Control-Allow-Methods"] == "GET, POST, OPTIONS"

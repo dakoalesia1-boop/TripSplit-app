@@ -20,17 +20,17 @@ Date: 2026-09-27
 
 Status: Decided
 
-Context: 
-The application requires persistent storage for groups, participants, and shared expenses while keeping the data structure simple for a lightweight monotholic application. The schema also needs to support future calculations and possible modular separation of domains. 
+Context:
+The application requires persistent storage for groups, participants, and shared expenses while keeping the data structure simple for a lightweight monotholic application. The schema also needs to support future calculations and possible modular separation of domains.
 
-Decisions: 
+Decisions:
 I decided to create separate tables for groups, participants, and expenses using forgien key relationships. Expenses belong to a specific group and reference the participant who paid. Participants who are linked to groups through a one-to-many relationship.
 
 Alternatives considered:
 Another option was to use a imple single-table structure, but this would duplicate participant and group information across expense records and make calculations harder to maintain.
 
-Concequences: 
-The schema is easier to extend later for features such as settlement tracking and analytics. But the schema also requires additional joins and relationship handling in the application logic. 
+Concequences:
+The schema is easier to extend later for features such as settlement tracking and analytics. But the schema also requires additional joins and relationship handling in the application logic.
 
 ## 2. Modular Separation of Feature Domains
 Date: 2026-09-29
@@ -61,7 +61,7 @@ Decision:
 Testing efforts were focused primarily on the settlement calculation service because it contains the application's most important business logic. Unit tests were written to validate balance calculations, participant inclusion rules, and expense sharing behavior independently from Flask routes and templates. Both pytest and pytest --cov=app passed with 100%.
 
 Alternatives considered:
-I considered testing full Flask routes and HTML rendering more extensively, but since the assignment emphasizes core logic rather than framework behavior, this option was not seen as important. 
+I considered testing full Flask routes and HTML rendering more extensively, but since the assignment emphasizes core logic rather than framework behavior, this option was not seen as important.
 
 Consequences:
 The testing strategy provides strong confidence in the financial calculation logic and supports easier debugging of settlement behavior. However, some UI and route integration behavior receives lighter automated coverage.
@@ -99,3 +99,81 @@ Keeping the application as one backend with a shared database was considered, bu
 
 Consequences:
 The domains are now independently deployable and easier to reason about, but the Settlement Service depends on the Expense Service being available for cross-service data access. This adds HTTP communication, failure handling, and more deployment complexity compared to the original monolith.
+
+**## 7. Database Ownership and Migration Strategy**
+
+Date: 2026-11-13
+
+Status: Decided
+
+Context:
+After splitting TripSplit into two backend services, each service needs persistent storage without creating unnecessary coupling between the domains.
+
+Decision:
+Each service was given its own SQL Server database. The Expense Service manages its own expense-related data, while the Settlement Service manages settlement records. Database schema changes are handled through separate migration scripts and migration runners inside each service.
+
+Alternatives considered:
+Using one shared database was considered, but it would create stronger coupling between the services. Managing all migrations from a central script was also considered, but separate migration runners provide clearer ownership.
+
+Consequences:
+Each service can manage its own database schema and migrations independently. However, maintaining two databases introduces additional configuration and deployment requirements.
+
+---
+
+**## 8. REST API Communication Between Services**
+
+Date: 2026-11-17
+
+Status: Decided
+
+Context:
+The Settlement Service needs access to expense and participant information to calculate balances. Since the services have separate databases, they need a communication mechanism that does not require direct database access across service boundaries.
+
+Decision:
+REST APIs were implemented for both services. The Settlement Service retrieves the required group and expense information from the Expense Service through HTTP requests using a dedicated snapshot endpoint.
+
+Alternatives considered:
+Direct database access from the Settlement Service was considered, but rejected because it would violate service ownership. A shared database or message broker was also considered unnecessary for the current application requirements.
+
+Consequences:
+The services remain independent and communicate through defined API endpoints. However, settlement calculations depend on the Expense Service being available, so request timeouts and error handling are necessary.
+
+---
+
+**## 9. Containerized Deployment and Static Frontend Architecture**
+
+Date: 2026-11-18
+
+Status: Decided
+
+Context:
+The application needs a consistent way to run the frontend and backend services together during development while keeping the frontend separate from backend business logic.
+
+Decision:
+Docker Compose was used to run the frontend, Expense Service, Settlement Service, and database environment together. The frontend remains a static application served through Nginx and communicates directly with the two backend APIs.
+
+Alternatives considered:
+Running each service manually was considered, but it would require more setup and make local development less consistent. Moving the frontend into a separate backend framework was also considered unnecessary.
+
+Consequences:
+The application can be started and tested using one Docker Compose configuration. The services remain independently containerized, although the setup requires Docker and additional container configuration.
+
+---
+
+**## 10. Azure Deployment and Automated CI/CD**
+
+Date: 2026-11-20
+
+Status: Decided
+
+Context:
+The application needs to be deployed to Azure, with automated testing and deployment to reduce manual configuration and make future updates easier.
+
+Decision:
+Azure Container Apps was selected to host the Expense and Settlement services, with a separate Azure SQL database for each service. Azure Storage Static Website hosting was selected for the frontend. GitHub Actions is used for CI/CD, with container images published to GitHub Container Registry and Azure authentication configured through OpenID Connect using a federated managed identity.
+
+Alternatives considered:
+Deploying the services manually was considered, but rejected because it would make updates more difficult to reproduce. Hosting the frontend inside a backend container was also considered, but Azure Storage provides a simpler solution for static files.
+
+Consequences:
+The application has a repeatable deployment process, separate hosting for the frontend and backend, and automated checks before deployment. However, the setup introduces additional cloud resources, permissions, secrets, and configuration that need to be maintained.

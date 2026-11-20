@@ -1,0 +1,171 @@
+openapi: 3.0.3
+
+info:
+  title: TripSplit Settlement Service API
+  version: 1.0.0
+  description: API for calculating group balances and recording settlements.
+
+servers:
+  - url: /
+    description: Current service
+
+paths:
+  /health:
+    get:
+      summary: Check service and database health
+      operationId: getSettlementHealth
+      responses:
+        '200':
+          description: Service and database are healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  service:
+                    type: string
+                    example: settlement-service
+                  db:
+                    type: string
+                    example: ok
+        '503':
+          description: Database is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/groups/{group_id}/balances:
+    get:
+      summary: Calculate balances for a group
+      description: Retrieves the expense snapshot from the Expense Service and combines it with recorded settlements.
+      operationId: getGroupBalances
+      parameters:
+        - $ref: '#/components/parameters/GroupId'
+      responses:
+        '200':
+          description: Group balances calculated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  group_id:
+                    type: integer
+                  balances:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        participant_id:
+                          type: integer
+                        balance:
+                          type: number
+        '404':
+          description: Group not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '502':
+          description: Expense Service could not be reached or returned an error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Could not retrieve settlements from the database
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/groups/{group_id}/settlements:
+    post:
+      summary: Record a settlement between participants
+      operationId: createSettlement
+      parameters:
+        - $ref: '#/components/parameters/GroupId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - payer_id
+                - receiver_id
+                - amount
+              properties:
+                payer_id:
+                  type: integer
+                  minimum: 1
+                  example: 1
+                receiver_id:
+                  type: integer
+                  minimum: 1
+                  example: 2
+                amount:
+                  type: number
+                  minimum: 0
+                  exclusiveMinimum: true
+                  example: 25.50
+      responses:
+        '201':
+          description: Settlement recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Settlement'
+        '400':
+          description: Invalid settlement details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Could not save settlement
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  parameters:
+    GroupId:
+      name: group_id
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+
+  schemas:
+    Settlement:
+      type: object
+      properties:
+        id:
+          type: integer
+        group_id:
+          type: integer
+        payer_id:
+          type: integer
+        receiver_id:
+          type: integer
+        amount:
+          type: number
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        status:
+          type: string
+        service:
+          type: string
+        db:
+          type: string
