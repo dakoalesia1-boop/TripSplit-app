@@ -1,0 +1,71 @@
+# yaml-language-server: $schema=./system.schema.json
+
+student: adako.ieu2024
+prefix: adako-ieu2024
+public_url: https://adakoieu2024ui.z1.web.core.windows.net/
+
+ui:
+  path: ui
+  storage_account: adakoieu2024ui
+  calls:
+    - expense-service
+    - settlement-service
+
+azure:
+  resource_group: rg-adako-ieu2024
+  container_apps_environment: adako-ieu2024-env
+  sql_server: adako-ieu2024-sql
+  registry: ghcr.io/dakoalesia1-boop
+
+services:
+  expense-service:
+    description: Manages groups, participants and shared expenses.
+    path: services/expense-service
+    openapi: services/expense-service/openapi.yaml
+    port_default: 8000
+    health: /health
+    migrations: services/expense-service/migrations
+    env:
+      PORT:
+        description: HTTP port used by the Expense Service.
+        default: 8000
+      DATABASE_URL:
+        description: Azure SQL connection string for the Expense Service database.
+        secret: true
+      CORS_ORIGINS:
+        description: Comma-separated browser origins allowed to call this service.
+        default: ""
+    azure:
+      container_app: adako-ieu2024-expense-service
+      sql_database: adako-ieu2024-expense-service-db
+
+  settlement-service:
+    description: Calculates balances and records settlements between participants.
+    path: services/settlement-service
+    openapi: services/settlement-service/openapi.yaml
+    port_default: 8001
+    health: /health
+    migrations: services/settlement-service/migrations
+    env:
+      PORT:
+        description: HTTP port used by the Settlement Service.
+        default: 8001
+      DATABASE_URL:
+        description: Azure SQL connection string for the Settlement Service database.
+        secret: true
+      CORS_ORIGINS:
+        description: Comma-separated browser origins allowed to call this service.
+        default: ""
+      EXPENSE_SERVICE_URL:
+        description: Base URL of the Expense Service.
+        default: http://expense-service:8000
+    calls:
+      - service: expense-service
+        url_env: EXPENSE_SERVICE_URL
+        endpoints:
+          - GET /api/groups/{group_id}/snapshot
+        timeout_s: 5
+        on_failure: Returns 404 when the group is not found; returns 502 when the Expense Service is unavailable or returns another error.
+    azure:
+      container_app: adako-ieu2024-settlement-service
+      sql_database: adako-ieu2024-settlement-service-db

@@ -1,0 +1,313 @@
+openapi: 3.0.3
+info:
+  title: TripSplit Expense Service API
+  version: 1.0.0
+  description: API for managing expense groups, participants and shared expenses.
+servers:
+- url: /
+  description: Current service
+paths:
+  /health:
+    get:
+      summary: Check service health
+      operationId: getExpenseHealth
+      responses:
+        '200':
+          description: Service is running
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  service:
+                    type: string
+                    example: expense-service
+  /api/groups:
+    get:
+      summary: List all groups
+      operationId: getGroups
+      responses:
+        '200':
+          description: Groups retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Group'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      summary: Create a group
+      operationId: createGroup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - name
+              properties:
+                name:
+                  type: string
+                  maxLength: 255
+                  example: Barcelona Trip
+      responses:
+        '201':
+          description: Group created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/groups/{group_id}:
+    get:
+      summary: Get group details and participants
+      operationId: getGroup
+      parameters:
+      - $ref: '#/components/parameters/GroupId'
+      responses:
+        '200':
+          description: Group details retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  name:
+                    type: string
+                  participants:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ParticipantSummary'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/groups/{group_id}/participants:
+    get:
+      summary: List participants in a group
+      operationId: getParticipants
+      parameters:
+      - $ref: '#/components/parameters/GroupId'
+      responses:
+        '200':
+          description: Participants retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Participant'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      summary: Add a participant to a group
+      operationId: createParticipant
+      parameters:
+      - $ref: '#/components/parameters/GroupId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - name
+              properties:
+                name:
+                  type: string
+                  maxLength: 255
+                  example: Alex
+      responses:
+        '201':
+          description: Participant created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Participant'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/groups/{group_id}/expenses:
+    post:
+      summary: Add an expense to a group
+      operationId: createExpense
+      parameters:
+      - $ref: '#/components/parameters/GroupId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - description
+              - amount
+              - paid_by_id
+              - shared_participants
+              properties:
+                description:
+                  type: string
+                  maxLength: 200
+                  example: Dinner
+                amount:
+                  type: number
+                  minimum: 0
+                  exclusiveMinimum: true
+                  example: 80.5
+                paid_by_id:
+                  type: integer
+                  example: 1
+                category:
+                  type: string
+                  maxLength: 50
+                  default: General
+                  example: Food
+                shared_participants:
+                  type: array
+                  minItems: 1
+                  uniqueItems: true
+                  items:
+                    type: integer
+                  example:
+                  - 1
+                  - 2
+      responses:
+        '201':
+          description: Expense created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expense'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/groups/{group_id}/snapshot:
+    get:
+      summary: Get a group expense snapshot
+      description: Returns group information and expenses, including payer names and
+        shared participant IDs. Used by the Settlement Service.
+      operationId: getGroupSnapshot
+      parameters:
+      - $ref: '#/components/parameters/GroupId'
+      responses:
+        '200':
+          description: Snapshot retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  group_id:
+                    type: integer
+                  group_name:
+                    type: string
+                  expenses:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ExpenseSnapshot'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+components:
+  parameters:
+    GroupId:
+      name: group_id
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+  schemas:
+    Group:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+    ParticipantSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+    Participant:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        group_id:
+          type: integer
+    Expense:
+      type: object
+      properties:
+        id:
+          type: integer
+        description:
+          type: string
+        amount:
+          type: number
+        category:
+          type: string
+        paid_by_id:
+          type: integer
+        group_id:
+          type: integer
+        shared_participants:
+          type: array
+          items:
+            type: integer
+    ExpenseSnapshot:
+      allOf:
+      - $ref: '#/components/schemas/Expense'
+      - type: object
+        properties:
+          paid_by_name:
+            type: string
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+  responses:
+    BadRequest:
+      description: Invalid request data
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Group not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

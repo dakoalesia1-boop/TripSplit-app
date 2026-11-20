@@ -1,0 +1,110 @@
+name: TripSplit CD
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+jobs:
+  ci:
+    name: Run CI and publish images
+    uses: ./.github/workflows/ci.yml
+    secrets: inherit
+
+  deploy:
+    name: Deploy TripSplit to Azure
+    runs-on: ubuntu-latest
+    needs: ci
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Log in to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Set deployment variables
+        run: |
+          echo "RESOURCE_GROUP=${{ vars.RESOURCE_GROUP }}" >> "$GITHUB_ENV"
+          echo "PREFIX=${{ vars.PREFIX }}" >> "$GITHUB_ENV"
+          echo "UI_STORAGE=${{ vars.UI_STORAGE }}" >> "$GITHUB_ENV"
+          echo "EXPENSE_URL=https://adako-ieu2024-expense-service.calmwave-c479fce5.germanywestcentral.azurecontainerapps.io" >> "$GITHUB_ENV"
+          echo "SETTLEMENT_URL=https://adako-ieu2024-settlement-service.calmwave-c479fce5.germanywestcentral.azurecontainerapps.io" >> "$GITHUB_ENV"
+
+      - name: Deploy Expense Service
+        run: |
+          az containerapp update \
+            --name "$PREFIX-expense-service" \
+            --resource-group "$RESOURCE_GROUP" \
+            --image "ghcr.io/dakoalesia1-boop/tripsplit-expense-service:${GITHUB_SHA}"
+
+      - name: Deploy Settlement Service
+        run: |
+          az containerapp update \
+            --name "$PREFIX-settlement-service" \
+            --resource-group "$RESOURCE_GROUP" \
+            --image "ghcr.io/dakoalesia1-boop/tripsplit-settlement-service:${GITHUB_SHA}"
+
+      - name: Configure production UI
+        run: |
+          cat > ui/config.js <<EOFCONFIG
+          const API_CONFIG = {
+              expenseService: "${EXPENSE_URL}",
+              settlementService: "${SETTLEMENT_URL}"
+          };
+          EOFCONFIG
+
+      - name: Upload UI to Azure Storage
+        run: |
+          STORAGE_KEY=$(az storage account keys list \
+            --resource-group "$RESOURCE_GROUP" \
+            --account-name "$UI_STORAGE" \
+            --query '[0].value' \
+            --output tsv)
+
+          az storage blob upload-batch \
+            --account-name "$UI_STORAGE" \
+            --account-key "$STORAGE_KEY" \
+            --destination '$web' \
+            --source ui \
+            --overwrite
+
+      - name: Check Expense Service health
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent "$EXPENSE_URL/health"; then
+              echo "Expense Service is healthy."
+              exit 0
+            fi
+            echo "Waiting for Expense Service (attempt $attempt/30)..."
+            sleep 10
+          done
+          echo "Expense Service did not become healthy."
+          exit 1
+
+      - name: Check Settlement Service health
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent "$SETTLEMENT_URL/health"; then
+              echo "Settlement Service is healthy."
+              exit 0
+            fi
+            echo "Waiting for Settlement Service (attempt $attempt/30)..."
+            sleep 10
+          done
+          echo "Settlement Service did not become healthy."
+          exit 1
