@@ -15,6 +15,8 @@ services:
     container_name: tripsplit-db-init
     environment:
       MSSQL_SA_PASSWORD: ${SQLSERVER_SA_PASSWORD}
+      EXPENSE_DB_PASSWORD: ${EXPENSE_DB_PASSWORD}
+      SETTLEMENT_DB_PASSWORD: ${SETTLEMENT_DB_PASSWORD}
     depends_on:
       - sqlserver
 
@@ -23,7 +25,7 @@ services:
     container_name: tripsplit-expense-service
     environment:
       PORT: 8000
-      DATABASE_URL: ${EXPENSE_DATABASE_URL}
+      DATABASE_URL: "DRIVER={ODBC Driver 18 for SQL Server};SERVER=sqlserver,1433;DATABASE=expense_db;UID=expense_service_user;PWD=${EXPENSE_DB_PASSWORD};Encrypt=no;TrustServerCertificate=yes"
       EXPENSE_SERVICE_URL: http://expense-service:8000
     depends_on:
       db-init:
@@ -36,7 +38,7 @@ services:
     container_name: tripsplit-settlement-service
     environment:
       PORT: 8001
-      DATABASE_URL: ${SETTLEMENT_DATABASE_URL}
+      DATABASE_URL: "DRIVER={ODBC Driver 18 for SQL Server};SERVER=sqlserver,1433;DATABASE=settlement_db;UID=settlement_service_user;PWD=${SETTLEMENT_DB_PASSWORD};Encrypt=no;TrustServerCertificate=yes"
       EXPENSE_SERVICE_URL: http://expense-service:8000
     depends_on:
       db-init:
