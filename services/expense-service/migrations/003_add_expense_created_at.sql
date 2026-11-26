@@ -1,0 +1,4 @@
+ALTER TABLE expenses
+ADD created_at DATETIME2 NOT NULL
+    CONSTRAINT DF_expenses_created_at
+    DEFAULT SYSUTCDATETIME();

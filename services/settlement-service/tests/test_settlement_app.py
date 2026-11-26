@@ -1,5 +1,6 @@
 
 import sys
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -225,7 +226,7 @@ def test_expense_and_settlement_services_integrate(
     expense_conn.cursor.return_value = expense_cursor
 
     group = (1, "Integration Test Trip")
-    expense = (1, "Dinner", 60, "Food", 10, "Alex")
+    expense = (1, "Dinner", 60, "Food", 10, "Alex", datetime(2026, 11, 26, 19, 35, 29))
 
     expense_cursor.fetchone.side_effect = [
         group,

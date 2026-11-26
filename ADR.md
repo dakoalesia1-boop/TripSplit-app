@@ -102,21 +102,28 @@ The domains are now independently deployable and easier to reason about, but the
 
 **## 7. Database Ownership and Migration Strategy**
 
-Date: 2026-11-13
+Date: 2026-11-13 (updated 2026-11-26)
 
 Status: Decided
 
 Context:
-After splitting TripSplit into two backend services, each service needs persistent storage without creating unnecessary coupling between the domains.
+After splitting TripSplit into two backend services, each service needs persistent storage without creating unnecessary coupling between the domains. Schema changes must also be applied safely to existing Azure SQL data during deployment.
 
 Decision:
-Each service was given its own SQL Server database. The Expense Service manages its own expense-related data, while the Settlement Service manages settlement records. Database schema changes are handled through separate migration scripts and migration runners inside each service.
+Each service has its own SQL Server database. The Expense Service owns expense-related data, while the Settlement Service owns settlement records. Each service manages its schema through its own SQL migration scripts and migration runner.
+
+Migrations are versioned SQL files and are recorded in a `schema_migrations` table. The migration runner checks this table and applies only migrations that have not already been recorded. This prevents previously applied migrations from being run again during subsequent container starts.
+
+Migration 003 (`003_add_expense_created_at.sql`) adds a non-null `created_at` column to the Expense Service's `expenses` table, using `SYSUTCDATETIME()` as its default. This provides a timestamp for existing rows when the migration is applied and for new rows inserted afterwards. Existing timestamps represent migration-time values, not the original dates on which those expenses were created. The Expense Service snapshot API also exposes this timestamp.
 
 Alternatives considered:
-Using one shared database was considered, but it would create stronger coupling between the services. Managing all migrations from a central script was also considered, but separate migration runners provide clearer ownership.
+Using one shared database was considered, but it would create stronger coupling between the services. Managing all migrations from a central script was also considered, but separate migration runners provide clearer ownership. Rebuilding the database or recreating the expenses table was rejected because it could destroy existing records.
 
 Consequences:
-Each service can manage its own database schema and migrations independently. However, maintaining two databases introduces additional configuration and deployment requirements.
+Each service can manage its own database schema and migrations independently. The migration history provides a record of applied changes, and forward-only migrations reduce the risk of losing existing data. Migration changes still require testing and verification against the deployed database. Before and after database evidence is retained to demonstrate that existing expense records remain present.
+
+Recovery:
+Before applying a potentially risky production migration, preserve a suitable database backup or recovery point. If a migration fails, inspect the database state and deployment logs before retrying. Prefer a corrective forward migration to repair an applied schema change. Do not delete migration-history records or manually reverse schema changes as a routine recovery method. If the deployment fails, investigate and correct the cause before deploying again; preserve the existing database records.
 
 ---
 

@@ -58,3 +58,26 @@ def test_apply_migrations_skips_already_applied(monkeypatch):
         "UPDATE expenses" in sql
         for sql in executed_sql
     )
+
+    assert any(
+        "ALTER TABLE expenses" in sql
+        and "created_at" in sql
+        for sql in executed_sql
+    )
+
+
+
+def test_created_at_migration_adds_non_null_column_with_utc_default():
+    migration = (
+        SERVICE_DIR
+        / "migrations"
+        / "003_add_expense_created_at.sql"
+    )
+
+    assert migration.exists()
+
+    sql = migration.read_text(encoding="utf-8").upper()
+
+    assert "ALTER TABLE EXPENSES" in sql
+    assert "ADD CREATED_AT DATETIME2 NOT NULL" in sql
+    assert "DEFAULT SYSUTCDATETIME()" in sql
