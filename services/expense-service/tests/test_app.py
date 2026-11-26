@@ -1,5 +1,6 @@
 
 import sys
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -220,7 +221,7 @@ def test_get_group_snapshot_success(client, monkeypatch):
         monkeypatch,
         fetchone=[(1, "Barcelona Trip")],
         fetchall=[
-            [(25, "Dinner", 40, "Food", 10, "Alex")],
+            [(25, "Dinner", 40, "Food", 10, "Alex", datetime(2026, 11, 26, 19, 35, 29))],
             [(10,), (11,)],
         ],
     )
@@ -230,6 +231,7 @@ def test_get_group_snapshot_success(client, monkeypatch):
     assert response.status_code == 200
     assert response.json["group_name"] == "Barcelona Trip"
     assert response.json["expenses"][0]["description"] == "Dinner"
+    assert response.json["expenses"][0]["created_at"] == "2026-11-26T19:35:29Z"
     assert response.json["expenses"][0]["shared_participants"] == [10, 11]
 
 def test_cors_allows_configured_origin(client, monkeypatch):

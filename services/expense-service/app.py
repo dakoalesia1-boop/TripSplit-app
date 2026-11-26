@@ -448,7 +448,8 @@ def get_group_snapshot(group_id):
                 e.amount,
                 e.category,
                 e.paid_by_id,
-                p.name
+                p.name,
+                e.created_at
             FROM expenses e
             JOIN participants p ON e.paid_by_id = p.id
             WHERE e.group_id = ?
@@ -480,6 +481,7 @@ def get_group_snapshot(group_id):
                 "category": row[3],
                 "paid_by_id": row[4],
                 "paid_by_name": row[5],
+                "created_at": row[6].isoformat() + "Z",
                 "shared_participants": shared_participants
             })
 
