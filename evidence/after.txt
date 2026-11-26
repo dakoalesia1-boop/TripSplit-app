@@ -1,0 +1,18 @@
+TripSplit - Expense database AFTER migration 003
+Verification date: 2026-11-26
+Database: adako-ieu2024-expense-service-db
+Deployed commit: eba05b64248300498d2b461cc328f1ab16368054
+
+Applied migrations:
+001_init.sql | 2026-11-20 11:16:24.740050
+002_normalize_expense_categories.sql | 2026-11-20 11:16:24.751168
+003_add_expense_created_at.sql | 2026-11-26 20:11:32.579183
+
+Existing expenses after migration:
+1 | Dinner | 60.00 | Food | 2026-11-26 20:11:32.567421
+2 | Brunch | 85.00 | Food | 2026-11-26 20:11:32.567421
+
+Total expenses: 2
+created_at column: PRESENT
+Original expenses preserved: YES
+Migration 003: APPLIED
