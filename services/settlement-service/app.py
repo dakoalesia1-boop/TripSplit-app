@@ -2,6 +2,8 @@ import os
 import pyodbc
 import requests
 import logging
+import sys
+import uuid
 import time
 
 from flask import Flask, jsonify, request, g
@@ -9,6 +11,10 @@ from migration_runner import apply_migrations, get_connection
 
 
 app = Flask(__name__)
+app.logger.handlers.clear()
+app.logger.addHandler(logging.StreamHandler(sys.stdout))
+app.logger.setLevel(logging.INFO)
+app.logger.propagate = False
 
 CORS_ORIGINS = {
     origin.strip()
@@ -128,31 +134,47 @@ def get_balances(group_id):
 def health():
     conn = None
     cursor = None
+    version = os.getenv("APP_VERSION", "local")
 
     try:
-        conn = get_connection()
+        conn = pyodbc.connect(
+            os.environ["DATABASE_URL"],
+            timeout=5,
+            autocommit=False
+        )
+        conn.timeout = 5
         cursor = conn.cursor()
-        cursor.execute("SELECT 1")
+
+        cursor.execute("SELECT COUNT(*) FROM schema_migrations")
+        cursor.fetchone()
+
+        cursor.execute(
+            "INSERT INTO schema_migrations (filename) VALUES (?)",
+            f"__health_probe__{uuid.uuid4().hex}"
+        )
+        conn.rollback()
 
         return jsonify(
             status="ok",
             service="settlement-service",
-            db="ok"
+            db="ok",
+            version=version
         ), 200
 
-    except Exception:
-        app.logger.exception("Settlement Service database health check failed")
+    except (pyodbc.Error, RuntimeError, KeyError):
+        app.logger.warning("Database health check failed")
 
         return jsonify(
             status="error",
             service="settlement-service",
-            db="unavailable"
+            db="unavailable",
+            version=version
         ), 503
 
     finally:
-        if cursor:
+        if cursor is not None:
             cursor.close()
-        if conn:
+        if conn is not None:
             conn.close()
 
 

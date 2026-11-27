@@ -23,5 +23,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app.py migration_runner.py ./
 COPY migrations ./migrations
 
+ARG APP_VERSION=local
+ENV APP_VERSION=${APP_VERSION}
+
 ENV PORT=8000
 CMD ["python", "app.py"]

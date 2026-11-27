@@ -13,6 +13,7 @@ paths:
   /health:
     get:
       summary: Check service and database health
+      description: Verifies database read and write access using a rolled-back transaction.
       operationId: getSettlementHealth
       responses:
         '200':
@@ -21,6 +22,7 @@ paths:
             application/json:
               schema:
                 type: object
+                required: [status, service, db, version]
                 properties:
                   status:
                     type: string
@@ -31,12 +33,30 @@ paths:
                   db:
                     type: string
                     example: ok
+                  version:
+                    type: string
+                    description: Deployed Git SHA or local build identifier.
+                    example: local
         '503':
           description: Database is unavailable
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                type: object
+                required: [status, service, db, version]
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  service:
+                    type: string
+                    example: settlement-service
+                  db:
+                    type: string
+                    example: unavailable
+                  version:
+                    type: string
+                    example: local
 
   /api/groups/{group_id}/balances:
     get:

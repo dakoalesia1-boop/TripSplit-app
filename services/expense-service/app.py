@@ -3,6 +3,8 @@ import os
 import math
 import pyodbc
 import logging
+import sys
+import uuid
 import time
 
 from flask import Flask, jsonify, request, g
@@ -10,6 +12,10 @@ from migration_runner import apply_migrations, get_connection
 
 
 app = Flask(__name__)
+app.logger.handlers.clear()
+app.logger.addHandler(logging.StreamHandler(sys.stdout))
+app.logger.setLevel(logging.INFO)
+app.logger.propagate = False
 
 CORS_ORIGINS = {
     origin.strip()
@@ -48,7 +54,51 @@ def log_request(response):
 
 @app.route("/health")
 def health():
-    return jsonify(status="ok", service="expense-service")
+    conn = None
+    cursor = None
+    version = os.getenv("APP_VERSION", "local")
+
+    try:
+        conn = pyodbc.connect(
+            os.environ["DATABASE_URL"],
+            timeout=5,
+            autocommit=False
+        )
+        conn.timeout = 5
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT COUNT(*) FROM schema_migrations")
+        cursor.fetchone()
+
+        cursor.execute(
+            "INSERT INTO schema_migrations (filename) VALUES (?)",
+            f"__health_probe__{uuid.uuid4().hex}"
+        )
+        conn.rollback()
+
+        return jsonify(
+            status="ok",
+            service="expense-service",
+            db="ok",
+            version=version
+        ), 200
+
+    except (pyodbc.Error, RuntimeError, KeyError):
+        app.logger.warning("Database health check failed")
+
+        return jsonify(
+            status="error",
+            service="expense-service",
+            db="unavailable",
+            version=version
+        ), 503
+
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if conn is not None:
+            conn.close()
+
 
 @app.route("/api/groups", methods=["GET"])
 def get_groups():

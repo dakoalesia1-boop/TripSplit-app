@@ -29,6 +29,9 @@ services:
       PORT:
         description: HTTP port used by the Expense Service.
         default: 8000
+      APP_VERSION:
+        description: Git commit SHA embedded during CI image build.
+        default: "local"
       DATABASE_URL:
         description: Azure SQL connection string for the Expense Service database.
         secret: true
@@ -50,6 +53,9 @@ services:
       PORT:
         description: HTTP port used by the Settlement Service.
         default: 8001
+      APP_VERSION:
+        description: Git commit SHA embedded during CI image build.
+        default: "local"
       DATABASE_URL:
         description: Azure SQL connection string for the Settlement Service database.
         secret: true

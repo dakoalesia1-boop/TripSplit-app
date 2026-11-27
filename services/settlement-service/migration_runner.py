@@ -41,18 +41,40 @@ def get_applied_migrations(cursor):
     return {row[0] for row in cursor.fetchall()}
 
 def apply_migrations():
+    print("Starting database migrations", flush=True)
+
     with get_connection() as conn:
         cursor = conn.cursor()
         ensure_migrations_table(cursor)
         applied = get_applied_migrations(cursor)
+        conn.commit()
+
         for migration_file in sorted(MIGRATIONS_DIR.glob("*.sql")):
             if migration_file.name in applied:
+                print(
+                    f"Migration already applied: {migration_file.name}",
+                    flush=True
+                )
                 continue
 
-            sql = migration_file.read_text(encoding="utf-8")
-            cursor.execute(sql)
-            cursor.execute(
-                "INSERT INTO schema_migrations (filename) VALUES (?)",
-                migration_file.name
+            print(f"Applying migration: {migration_file.name}", flush=True)
+
+            try:
+                sql = migration_file.read_text(encoding="utf-8")
+                cursor.execute(sql)
+                cursor.execute(
+                    "INSERT INTO schema_migrations (filename) VALUES (?)",
+                    migration_file.name
+                )
+                conn.commit()
+            except Exception:
+                conn.rollback()
+                print(f"Migration failed: {migration_file.name}", flush=True)
+                raise
+
+            print(
+                f"Migration successfully applied: {migration_file.name}",
+                flush=True
             )
-            conn.commit()
+
+    print("Database migrations completed successfully", flush=True)

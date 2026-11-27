@@ -27,14 +27,76 @@ def client():
         yield client
 
 
-def test_health_returns_ok(client, monkeypatch):
-    mock_settlement_database(monkeypatch)
+@pytest.fixture
+def health_database(monkeypatch):
+    from unittest.mock import MagicMock
+
+    conn = MagicMock()
+    cursor = MagicMock()
+    conn.cursor.return_value = cursor
+    cursor.fetchone.return_value = (1,)
+
+    monkeypatch.setenv("DATABASE_URL", "mock-database")
+    monkeypatch.setenv("APP_VERSION", "test-version")
+    monkeypatch.setattr(
+        settlement_app.pyodbc, "connect", lambda *args, **kwargs: conn
+    )
+
+    return conn, cursor
+
+
+def test_health_returns_ok(client, health_database):
+    conn, cursor = health_database
 
     response = client.get("/health")
 
     assert response.status_code == 200
     assert response.json["status"] == "ok"
     assert response.json["service"] == "settlement-service"
+    assert response.json["db"] == "ok"
+    assert response.json["version"] == "test-version"
+
+    assert cursor.execute.call_count == 2
+    conn.rollback.assert_called_once()
+    conn.commit.assert_not_called()
+    cursor.close.assert_called_once()
+    conn.close.assert_called_once()
+
+
+def test_health_returns_503_when_connection_fails(client, monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "mock-database")
+    monkeypatch.setenv("APP_VERSION", "test-version")
+
+    def fail_connection(*args, **kwargs):
+        raise settlement_app.pyodbc.Error("Database unavailable")
+
+    monkeypatch.setattr(
+        settlement_app.pyodbc, "connect", fail_connection
+    )
+
+    response = client.get("/health")
+
+    assert response.status_code == 503
+    assert response.json["status"] == "error"
+    assert response.json["db"] == "unavailable"
+    assert response.json["version"] == "test-version"
+
+
+def test_health_returns_503_when_write_fails(client, health_database):
+    conn, cursor = health_database
+
+    cursor.execute.side_effect = [
+        None,
+        settlement_app.pyodbc.Error("Write denied")
+    ]
+
+    response = client.get("/health")
+
+    assert response.status_code == 503
+    assert response.json["db"] == "unavailable"
+    conn.commit.assert_not_called()
+    cursor.close.assert_called_once()
+    conn.close.assert_called_once()
 
 
 @pytest.mark.parametrize("payload", [
@@ -292,7 +354,7 @@ def test_expense_and_settlement_services_integrate(
         11: -30.0
     }
 
-def test_cors_allows_configured_origin(client, monkeypatch):
+def test_cors_allows_configured_origin(client, monkeypatch, health_database):
     monkeypatch.setattr(
         settlement_app,
         "CORS_ORIGINS",

@@ -91,6 +91,8 @@ jobs:
         with:
           context: services/expense-service
           platforms: linux/amd64
+          build-args: |
+            APP_VERSION=${{ github.sha }}
           push: ${{ github.ref == 'refs/heads/main' }}
           provenance: false
           tags: ghcr.io/dakoalesia1-boop/tripsplit-expense-service:${{ github.sha }}
@@ -100,6 +102,8 @@ jobs:
         with:
           context: services/settlement-service
           platforms: linux/amd64
+          build-args: |
+            APP_VERSION=${{ github.sha }}
           push: ${{ github.ref == 'refs/heads/main' }}
           provenance: false
           tags: ghcr.io/dakoalesia1-boop/tripsplit-settlement-service:${{ github.sha }}
