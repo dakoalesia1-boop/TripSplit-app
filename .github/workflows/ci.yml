@@ -69,10 +69,36 @@ jobs:
             --cov-fail-under=70 \
             services/settlement-service/tests
 
+  sqlserver-integration:
+    name: Verify services against SQL Server
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Start services and verify database health
+        run: |
+          export SQLSERVER_SA_PASSWORD="CiSql_$(openssl rand -hex 16)!"
+          export EXPENSE_DB_PASSWORD="CiExpense_$(openssl rand -hex 16)!"
+          export SETTLEMENT_DB_PASSWORD="CiSettlement_$(openssl rand -hex 16)!"
+
+          trap 'if [ "$?" -ne 0 ]; then docker compose ps -a; docker compose logs --no-color sqlserver db-init expense-service settlement-service; fi' EXIT
+
+          docker compose up -d --build expense-service settlement-service
+
+          for port in 8000 8001; do
+            curl --fail --silent --show-error \
+              --connect-timeout 5 --max-time 10 \
+              --retry 30 --retry-all-errors --retry-delay 3 --retry-max-time 120 \
+              "http://localhost:${port}/health" |
+              jq -e '.status == "ok" and .db == "ok"'
+          done
+
   build-images:
     name: Build Docker images
     runs-on: ubuntu-latest
-    needs: test
+    needs: [test, sqlserver-integration]
 
     steps:
       - name: Checkout repository
