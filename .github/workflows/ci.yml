@@ -40,6 +40,9 @@ jobs:
           pip install -r requirements-dev.txt
           pip install openapi-spec-validator
           pip install check-jsonschema
+          python -m pip install ruff==0.11.13
+      - name: Lint Assignment 2 services
+        run: python -m ruff check services/
 
       - name: Validate OpenAPI specifications
         run: |

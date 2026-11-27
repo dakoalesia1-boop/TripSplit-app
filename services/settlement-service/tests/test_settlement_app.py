@@ -1,7 +1,8 @@
-
+import importlib.util
 import sys
 from datetime import datetime
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 import requests
@@ -10,7 +11,6 @@ SERVICE_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SERVICE_DIR))
 
 sys.modules.pop("migration_runner", None)
-import importlib.util
 
 spec = importlib.util.spec_from_file_location(
     "settlement_service_app", SERVICE_DIR / "app.py"
@@ -158,9 +158,6 @@ def test_balances_returns_502_when_expense_service_is_unavailable(
 
     assert response.status_code == 502
     assert response.json["error"] == "Could not retrieve group expenses"
-
-
-from unittest.mock import MagicMock
 
 
 def mock_settlement_database(monkeypatch, settlements=None, new_id=1):
