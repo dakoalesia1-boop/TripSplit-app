@@ -100,7 +100,7 @@ Keeping the application as one backend with a shared database was considered, bu
 Consequences:
 The domains are now independently deployable and easier to reason about, but the Settlement Service depends on the Expense Service being available for cross-service data access. This adds HTTP communication, failure handling, and more deployment complexity compared to the original monolith.
 
-**## 7. Database Ownership and Migration Strategy**
+## 7. Database Ownership and Migration Strategy
 
 Date: 2026-11-13 (updated 2026-11-26)
 
@@ -113,6 +113,8 @@ Decision:
 Each service has its own SQL Server database. The Expense Service owns expense-related data, while the Settlement Service owns settlement records. Each service manages its schema through its own SQL migration scripts and migration runner.
 
 Migrations are versioned SQL files and are recorded in a `schema_migrations` table. The migration runner checks this table and applies only migrations that have not already been recorded. This prevents previously applied migrations from being run again during subsequent container starts.
+
+Settlement records store `group_id`, `payer_id`, and `receiver_id` as IDs from the Expense Service. Splitting the databases removed the ability to enforce group and participant references with foreign keys across the two services. When creating a settlement, the Settlement Service checks that the payer and receiver IDs are positive and different and that the amount is positive and finite. It does not verify that those IDs belong to the group before saving. When calculating balances, it reads group, participant, and expense data through the Expense Service snapshot endpoint. A settlement can therefore contain a reference that was never validated against the Expense database.
 
 Migration 003 (`003_add_expense_created_at.sql`) adds a non-null `created_at` column to the Expense Service's `expenses` table, using `SYSUTCDATETIME()` as its default. This provides a timestamp for existing rows when the migration is applied and for new rows inserted afterwards. Existing timestamps represent migration-time values, not the original dates on which those expenses were created. The Expense Service snapshot API also exposes this timestamp.
 
@@ -127,60 +129,64 @@ Before applying a potentially risky production migration, preserve a suitable da
 
 ---
 
-**## 8. REST API Communication Between Services**
+## 8. Serverless Hosting on Azure
 
-Date: 2026-11-17
+Date: 2026-11-17 (Updated 2026-11-27)
 
 Status: Decided
 
 Context:
-The Settlement Service needs access to expense and participant information to calculate balances. Since the services have separate databases, they need a communication mechanism that does not require direct database access across service boundaries.
+TripSplit needs public HTTPS endpoints for the two Flask services, a place to serve the static UI, and a separate database for each service. Traffic is expected to be intermittent, so idle compute matters.
 
 Decision:
-REST APIs were implemented for both services. The Settlement Service retrieves the required group and expense information from the Expense Service through HTTP requests using a dedicated snapshot endpoint.
+Deploy Expense Service and Settlement Service to Azure Container Apps on the Consumption plan. Each service uses its own Azure SQL Database on the serverless tier. Azure Storage static website hosting serves the UI. GitHub Container Registry stores the service images, and GitHub Actions authenticates to Azure with OpenID Connect and a federated managed identity. The target is zero minimum and one maximum replica per service. A single replica limits concurrent startup migrations within a revision. Each service applies its own pending migrations and checks its own database. When Azure SQL is paused, the connection retry and backoff give it time to resume.
 
 Alternatives considered:
-Direct database access from the Settlement Service was considered, but rejected because it would violate service ownership. A shared database or message broker was also considered unnecessary for the current application requirements.
+An always-on hosting plan would reduce cold starts but incur idle compute costs. Serving the UI from another application container would add a deployment and runtime for files that Azure Storage can serve directly.
 
 Consequences:
-The services remain independent and communicate through defined API endpoints. However, settlement calculations depend on the Expense Service being available, so request timeouts and error handling are necessary.
+A request after an idle period can take longer or receive a temporary error while the service starts and SQL resumes. The post-deploy health check retries to allow for startup. Container Apps and Azure SQL use consumption-based compute, while Storage usage and retained logs are separate resources. At 100 times the traffic, I would measure cold-start latency and SQL load before changing replica limits. Before adding replicas, I would move migration execution to a controlled deployment step or serialize it with a database lock.
 
 ---
 
-**## 9. Containerized Deployment and Static Frontend Architecture**
+## 9. Pipeline and Testing
 
-Date: 2026-11-18
+Date: 2026-11-18 (Updated 2026-11-27)
 
 Status: Decided
 
 Context:
-The application needs a consistent way to run the frontend and backend services together during development while keeping the frontend separate from backend business logic.
+The service split adds failure modes that unit tests alone cannot cover. A change can pass mocked tests but still fail to build, initialize SQL Server, apply migrations, or start on Azure.
 
 Decision:
-Docker Compose was used to run the frontend, Expense Service, Settlement Service, and database environment together. The frontend remains a static application served through Nginx and communicates directly with the two backend APIs.
+GitHub Actions runs Ruff against `services/`, validates the two OpenAPI documents and `system.yaml`, runs the service test suites, and enforces a 70% coverage minimum for each service. The SQL Server startup job uses Docker Compose and a fresh SQL Server 2022 instance on the runner. `db-init` creates the two databases and their logins, each service runs its migrations on startup, and the job checks both `/health` responses for `status: ok` and `db: ok`. The image build job depends on both the backend test job and the SQL Server startup job.
+
+The cross-service tests cover the Settlement Service's dependency on the Expense Service snapshot endpoint. The settlement balance calculation uses the group and expense data returned by that endpoint. The suite also checks that an unavailable Expense Service produces a controlled `502` response.
+
+On a push to `main`, CD runs CI for that commit, publishes images tagged with its Git SHA, deploys both services, uploads the static UI with its production configuration, and checks the deployed health endpoints.
 
 Alternatives considered:
-Running each service manually was considered, but it would require more setup and make local development less consistent. Moving the frontend into a separate backend framework was also considered unnecessary.
+Using only mocked tests would keep CI fast but would miss problems such as the ODBC installer failing on the runner's architecture. Running CI against Azure SQL would tie branch checks to the deployed databases. The disposable SQL Server instance keeps CI isolated from those databases.
 
 Consequences:
-The application can be started and tested using one Docker Compose configuration. The services remain independently containerized, although the setup requires Docker and additional container configuration.
+The SQL Server job adds runtime but catches database initialization and startup failures before deployment. Live browser flows and Azure specific cold start behavior are checked separately because the local runner does not reproduce those conditions.
 
 ---
 
-**## 10. Azure Deployment and Automated CI/CD**
+## 10. Message Broker Left Out
 
-Date: 2026-11-20
+Date: 2026-11-20 (Updated 2026-11-27)
 
 Status: Decided
 
 Context:
-The application needs to be deployed to Azure, with automated testing and deployment to reduce manual configuration and make future updates easier.
+The Settlement Service needs current expense and participant data when a user requests balances. The Expense Service owns those records and exposes the required data through its snapshot endpoint.
 
 Decision:
-Azure Container Apps was selected to host the Expense and Settlement services, with a separate Azure SQL database for each service. Azure Storage Static Website hosting was selected for the frontend. GitHub Actions is used for CI/CD, with container images published to GitHub Container Registry and Azure authentication configured through OpenID Connect using a federated managed identity.
+Keep the synchronous HTTP request from Settlement Service to Expense Service. Use a bounded timeout and return a clear error when the snapshot cannot be retrieved.
 
 Alternatives considered:
-Deploying the services manually was considered, but rejected because it would make updates more difficult to reproduce. Hosting the frontend inside a backend container was also considered, but Azure Storage provides a simpler solution for static files.
+A message broker could deliver expense events asynchronously and allow the Settlement Service to maintain a local copy. That approach would also require handling retries, duplicate events, stale data, and rebuilding state from events.
 
 Consequences:
-The application has a repeatable deployment process, separate hosting for the frontend and backend, and automated checks before deployment. However, the setup introduces additional cloud resources, permissions, secrets, and configuration that need to be maintained.
+The balance request depends on the Expense Service being reachable, but both services retain ownership of their data and can report their own database health independently. I would revisit a broker if TripSplit needed background processing, multiple consumers of expense events, or replay after outages.
