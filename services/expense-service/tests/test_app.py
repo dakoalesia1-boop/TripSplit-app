@@ -1,14 +1,13 @@
-
+import importlib.util
 import sys
 from datetime import datetime
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 
 SERVICE_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SERVICE_DIR))
-
-import importlib.util
 
 spec = importlib.util.spec_from_file_location(
     "expense_service_app", SERVICE_DIR / "app.py"
@@ -172,10 +171,6 @@ def test_create_expense_rejects_description_over_200_characters(client):
     )
 
     assert response.status_code == 400
-
-
-from unittest.mock import MagicMock
-
 
 def mock_database(monkeypatch, fetchone=None, fetchall=None):
     conn = MagicMock()
